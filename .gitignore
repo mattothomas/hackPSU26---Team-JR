@@ -1,0 +1,16 @@
+# env files
+.env
+*.env
+backend/.env
+
+
+# dependencies
+node_modules/
+__pycache__/
+
+# openclaw (if anyone accidentally clones it inside your project)
+openclaw/
+
+# build output
+dist/
+build/
