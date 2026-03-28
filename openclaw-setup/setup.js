@@ -84,9 +84,11 @@ async function main() {
   console.log("  ✓ openclaw.json");
 
   // 4. Write openclaw/.env
+  const workspaceDir = path.join(configDir, "workspace");
+  mkdir(workspaceDir);
   const envContent = [
     `OPENCLAW_CONFIG_DIR=${configDir.replace(/\\/g, "/")}`,
-    `OPENCLAW_WORKSPACE_DIR=${configDir.replace(/\\/g, "/")}`,
+    `OPENCLAW_WORKSPACE_DIR=${workspaceDir.replace(/\\/g, "/")}`,
     `OPENCLAW_GATEWAY_BIND=lan`,
     `OPENCLAW_GATEWAY_TOKEN=founderOS-secret-token-123`,
     `GEMINI_API_KEY=${apiKey}`,

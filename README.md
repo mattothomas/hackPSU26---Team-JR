@@ -37,22 +37,19 @@ cd hackpsu26
 
 **2. Run the OpenClaw setup script**
 
-This creates all config files, agent workspaces, and SOUL prompts automatically.
+This creates all config files, agent workspaces, SOUL prompts, and a ready-to-use `.env` for Docker.
 ```bash
 node openclaw-setup/setup.js
 ```
-It will prompt for your Gemini API key, or pass it inline:
-```bash
-GEMINI_API_KEY=AIza... node openclaw-setup/setup.js
-```
+It will prompt for your Gemini API key. Enter it when asked.
 
-**3. Pull and start OpenClaw**
+**3. Start OpenClaw**
 ```bash
 cd openclaw
-export OPENCLAW_IMAGE="ghcr.io/openclaw/openclaw:latest"
-docker compose pull
 docker compose up -d
 ```
+
+Docker will pull `ghcr.io/openclaw/openclaw:latest` automatically on first run.
 
 Verify it's running:
 ```bash
