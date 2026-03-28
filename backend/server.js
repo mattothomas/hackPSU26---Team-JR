@@ -9,7 +9,6 @@ app.use(express.json());
 const OPENCLAW_URL = process.env.OPENCLAW_URL || "http://localhost:18789";
 const OPENCLAW_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || "";
 
-// Health check
 app.get("/health", async (req, res) => {
   try {
     const r = await fetch(`${OPENCLAW_URL}/healthz`);
@@ -20,7 +19,7 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// Streaming generate — sends each agent result as it finishes
+// Streaming generate — each agent result sent as it finishes
 app.post("/generate", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "prompt required" });
@@ -29,92 +28,107 @@ app.post("/generate", async (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  const send = (key, data) => {
-    res.write(`data: ${JSON.stringify({ key, data })}\n\n`);
-  };
+  const send = (key, data) => res.write(`data: ${JSON.stringify({ key, data })}\n\n`);
 
   try {
-    const idea = await callOpenClaw(`
-      You are an idea parser. Given this startup idea: "${prompt}"
+    const idea = await callAgent("idea-parser", `
+      You are the Idea Parser for a startup venture system.
+      Startup idea: "${prompt}"
       Return ONLY valid JSON, no explanation, no markdown:
       {
-        "problem": "one sentence describing the problem",
-        "target_users": "who this is for",
-        "domain": "industry/domain",
-        "core_goal": "what success looks like"
+        "problem": "one sentence describing the core problem",
+        "target_users": "specific description of who this is for",
+        "domain": "industry or domain",
+        "core_goal": "what success looks like in one sentence"
       }
     `);
     send("idea", idea);
 
-    const context = `Startup idea: ${prompt}\nParsed context: ${JSON.stringify(idea)}`;
+    const context = `Startup idea: "${prompt}"\nParsed context: ${JSON.stringify(idea)}`;
 
-    const product = await callOpenClaw(`${context}
-      You are the Product Agent for this startup. Return ONLY valid JSON, no markdown:
+    const product = await callAgent("product", `
+      You are the Product Agent for a startup venture system.
+      ${context}
+      Return ONLY valid JSON, no markdown:
       {
         "features": ["feature 1", "feature 2", "feature 3"],
-        "user_flow": "step-by-step how a user uses this",
-        "tech_stack": "recommended technologies",
-        "mvp_scope": "what to build first",
+        "user_flow": "numbered step-by-step of the core user journey",
+        "tech_stack": "specific technologies recommended",
+        "mvp_scope": "exactly what to build in the first 4 weeks",
         "status": "MVP defined. Awaiting your approval."
-      }`);
+      }
+    `);
     send("product", product);
 
-    const market = await callOpenClaw(`${context}
-      You are the Market Agent for this startup. Return ONLY valid JSON, no markdown:
+    const market = await callAgent("market", `
+      You are the Market Agent for a startup venture system.
+      ${context}
+      Return ONLY valid JSON, no markdown:
       {
-        "competitors": ["competitor 1", "competitor 2"],
-        "market_size": "estimated market size",
-        "market_gap": "what gap this fills",
-        "differentiation": "why this wins",
+        "competitors": ["real competitor 1", "real competitor 2", "real competitor 3"],
+        "market_size": "specific estimated market size with source reasoning",
+        "market_gap": "specific gap none of the competitors fill",
+        "differentiation": "the one thing that makes this win",
         "status": "Market analysis complete. Awaiting your approval."
-      }`);
+      }
+    `);
     send("market", market);
 
-    const business = await callOpenClaw(`${context}
-      You are the Business Agent for this startup. Return ONLY valid JSON, no markdown:
+    const business = await callAgent("business", `
+      You are the Business Agent for a startup venture system.
+      ${context}
+      Return ONLY valid JSON, no markdown:
       {
-        "pricing": "pricing strategy",
-        "revenue_model": "how money is made",
-        "cost_structure": "main costs",
-        "break_even": "when it breaks even",
+        "pricing": "specific pricing tiers with dollar amounts",
+        "revenue_model": "SaaS / marketplace / transactional / freemium / usage-based",
+        "cost_structure": "top 3 costs with rough % of budget",
+        "break_even": "estimated timeline to break even",
         "status": "Business model drafted. Awaiting your approval."
-      }`);
+      }
+    `);
     send("business", business);
 
-    const brand = await callOpenClaw(`${context}
-      You are the Brand Agent for this startup. Return ONLY valid JSON, no markdown:
+    const brand = await callAgent("brand", `
+      You are the Brand Agent for a startup venture system.
+      ${context}
+      Return ONLY valid JSON, no markdown:
       {
-        "startup_name": "a catchy name",
-        "tagline": "one-line tagline",
-        "tone": "brand voice description",
-        "colors": "suggested color palette",
+        "startup_name": "one original memorable name",
+        "tagline": "under 8 words",
+        "tone": "one word brand voice",
+        "colors": ["#hexcode — color name", "#hexcode — color name"],
         "status": "Brand identity created. Awaiting your approval."
-      }`);
+      }
+    `);
     send("brand", brand);
 
-    const pitch = await callOpenClaw(`${context}
-      You are the Pitch Agent for this startup. Return ONLY valid JSON, no markdown:
+    const pitch = await callAgent("pitch", `
+      You are the Pitch Agent for a startup venture system.
+      ${context}
+      Return ONLY valid JSON, no markdown:
       {
-        "one_liner": "one sentence pitch",
-        "pitch_30s": "30-second elevator pitch",
-        "why_now": "why this matters right now",
-        "ask": "what you need to get started",
+        "one_liner": "under 15 words, hooks immediately",
+        "pitch_30s": "3 sentences: problem, solution, why now",
+        "why_now": "specific real-world trend making this timely",
+        "ask": "specific dollar amount, what it funds, and timeline",
         "status": "Pitch ready. Awaiting your approval."
-      }`);
+      }
+    `);
     send("pitch", pitch);
 
-    const team = await callOpenClaw(`
+    const team = await callAgent("team-gen", `
+      You are the Team Generator for a startup venture system.
       ${context}
       Product plan: ${JSON.stringify(product)}
       Business model: ${JSON.stringify(business)}
-      You are the Team Generator. Return ONLY valid JSON, no markdown:
+      Return ONLY valid JSON, no markdown:
       {
         "team": [
           {
-            "role": "role title",
-            "responsibilities": ["responsibility 1", "responsibility 2"],
-            "skills": ["skill 1", "skill 2"],
-            "week1_task": "their first concrete task",
+            "role": "specific role title",
+            "responsibilities": ["concrete action 1", "concrete action 2"],
+            "skills": ["specific skill or tech 1", "specific skill or tech 2"],
+            "week1_task": "the single most important thing they do first",
             "status": "Ready to start. Awaiting your approval."
           }
         ]
@@ -132,13 +146,13 @@ app.post("/generate", async (req, res) => {
 
 // Re-run a single agent with founder feedback
 app.post("/redirect", async (req, res) => {
-  const { agent, originalOutput, feedback, prompt } = req.body;
+  const { agentId, agent, originalOutput, feedback, prompt } = req.body;
   if (!agent || !feedback) return res.status(400).json({ error: "agent and feedback required" });
 
   try {
-    const result = await callOpenClaw(`
+    const result = await callAgent(agentId || "product", `
       Original startup idea: "${prompt}"
-      You are the ${agent} agent.
+      You are the ${agent} for this startup.
       Your previous output was: ${JSON.stringify(originalOutput)}
       The founder reviewed your work and said: "${feedback}"
       Revise your output based on this feedback. Return ONLY valid JSON in the exact same format as before.
@@ -150,31 +164,41 @@ app.post("/redirect", async (req, res) => {
   }
 });
 
-async function callOpenClaw(prompt) {
-  const r = await fetch(`${OPENCLAW_URL}/v1/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENCLAW_TOKEN}`,
-    },
-    body: JSON.stringify({
-      model: "openclaw/default",
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  if (!r.ok) {
-    const errText = await r.text();
-    throw new Error(`OpenClaw error ${r.status}: ${errText}`);
-  }
+// Route to a specific named OpenClaw agent
+async function callAgent(agentId, prompt, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const r = await fetch(`${OPENCLAW_URL}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENCLAW_TOKEN}`,
+      },
+      body: JSON.stringify({
+        model: `openclaw/${agentId}`,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  const data = await r.json();
-  const text = data?.choices?.[0]?.message?.content ?? "";
-  const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  try {
-    return JSON.parse(clean);
-  } catch {
-    return { raw: text };
+    if ((r.status === 429 || r.status === 503) && attempt < retries) {
+      await sleep(4000 * attempt);
+      continue;
+    }
+
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`OpenClaw error ${r.status}: ${errText}`);
+    }
+
+    const data = await r.json();
+    const text = data?.choices?.[0]?.message?.content ?? "";
+    const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    try {
+      return JSON.parse(clean);
+    } catch {
+      return { raw: text };
+    }
   }
 }
 
