@@ -407,7 +407,7 @@ app.post("/build", async (req, res) => {
     fs.writeFileSync(path.join(previewDir, `${slug}.html`), result.html, "utf8");
 
     res.json({
-      url: `http://localhost:3001/preview/${slug}`,
+      url: `${process.env.BACKEND_PUBLIC_URL || "http://localhost:3001"}/preview/${slug}`,
       slug,
       app_name: result.app_name,
       description: result.description,
