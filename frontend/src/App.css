@@ -242,8 +242,7 @@ body {
   display: flex;
   flex-direction: column;
   height: auto;
-  min-height: 0;
-  overflow: visible;
+  width: 100%;
 }
 
 .panel-empty {
@@ -325,12 +324,22 @@ body {
 .metric-value {
   font-size: 22px;
   font-weight: 800;
-  background: linear-gradient(135deg, #5DCAA5, #7F77DD);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   line-height: 1.2;
   word-break: break-word;
   height: auto;
+}
+
+.metric-hook {
+  background: linear-gradient(135deg, #5DCAA5, #7F77DD);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.metric-detail {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e0e0e0;
+  -webkit-text-fill-color: #e0e0e0;
 }
 
 /* ── Highlight text ── */
@@ -379,7 +388,9 @@ body {
 
 /* ── Hook formatting ── */
 strong.hook {
-  color: #e8e8f0;
+  background: linear-gradient(135deg, #5DCAA5, #7F77DD);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-weight: 700;
   letter-spacing: 0.2px;
 }
@@ -387,6 +398,7 @@ strong.hook {
 .hook-sep {
   color: #444;
   font-weight: 400;
+  -webkit-text-fill-color: #444;
 }
 
 /* ── Checklist ── */
@@ -403,7 +415,7 @@ strong.hook {
   align-items: flex-start;
   gap: 10px;
   font-size: 16px;
-  color: #999;
+  color: #e0e0e0;
   line-height: 1.6;
   height: auto;
 }
@@ -567,12 +579,13 @@ strong.hook {
 }
 
 .skill-pill {
-  background: #1a1a28;
-  border: 1px solid #2a2a3a;
-  border-radius: 4px;
-  color: #888;
+  background: #1e1b3a;
+  border: 1px solid #5DCAA5;
+  border-radius: 6px;
+  color: #5DCAA5;
   font-size: 13px;
-  padding: 3px 10px;
+  font-weight: 600;
+  padding: 4px 10px;
   height: auto;
 }
 
@@ -588,11 +601,36 @@ strong.hook {
   height: auto;
 }
 
+.ready-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  gap: 8px;
+}
+
 .ready-status {
   font-size: 13px;
   color: #34d399;
   font-weight: 700;
-  margin-top: auto;
+}
+
+.btn-disapprove {
+  background: transparent;
+  border: 1px solid #3a3a4a;
+  border-radius: 6px;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-disapprove:hover {
+  border-color: #f87171;
+  color: #f87171;
 }
 
 .add-role-card {

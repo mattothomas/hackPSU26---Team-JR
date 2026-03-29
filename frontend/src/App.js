@@ -37,10 +37,15 @@ function StatusPill({ status }) {
 
 function MetricCard({ label, value }) {
   const display = Array.isArray(value) ? value[0] : typeof value === "object" && value ? Object.values(value)[0] : value;
+  const s = String(display ?? "—");
+  const idx = s.indexOf(" — ");
+  const inner = idx > 0 && idx < 60
+    ? <><span className="metric-hook">{s.slice(0, idx)}</span><span className="metric-detail"> — {s.slice(idx + 3)}</span></>
+    : <span className="metric-hook">{s}</span>;
   return (
     <div className="metric-card">
       <div className="metric-label">{label.replace(/_/g, " ")}</div>
-      <div className="metric-value">{String(display ?? "—")}</div>
+      <div className="metric-value">{inner}</div>
     </div>
   );
 }
@@ -180,7 +185,7 @@ function AgentPanel({ agentKey, data, status, onApprove, onRedirect, loading }) 
   );
 }
 
-function TeamPanel({ data, teamStatus, onApproveTeam, onRedirectTeam, prompt }) {
+function TeamPanel({ data, teamStatus, onApproveTeam, onRemoveTeam, onRedirectTeam, prompt }) {
   const [addingRole, setAddingRole] = useState(false);
 
   const handleAddRole = async () => {
@@ -225,7 +230,10 @@ function TeamPanel({ data, teamStatus, onApproveTeam, onRedirectTeam, prompt }) 
                 ✓ Approve
               </button>
             ) : (
-              <div className="ready-status">✓ Ready to start</div>
+              <div className="ready-status-row">
+                <span className="ready-status">✓ Ready to start</span>
+                <button className="btn-disapprove" onClick={() => onRemoveTeam(i)}>✕ Remove</button>
+              </div>
             )}
           </div>
         ))}
@@ -307,6 +315,22 @@ export default function App() {
   };
 
   const handleApproveTeam = (i) => setTeamStatus(p => ({ ...p, [i]: true }));
+
+  const handleRemoveTeam = (i) => {
+    setResult(p => ({
+      ...p,
+      team: { ...p.team, team: p.team.team.filter((_, idx) => idx !== i) },
+    }));
+    setTeamStatus(p => {
+      const next = {};
+      Object.entries(p).forEach(([k, v]) => {
+        const ki = Number(k);
+        if (ki < i) next[ki] = v;
+        else if (ki > i) next[ki - 1] = v;
+      });
+      return next;
+    });
+  };
 
   const handleRedirectTeam = async (_, originalOutput, feedback) => {
     const res = await fetch(`${API}/redirect`, {
@@ -401,6 +425,7 @@ export default function App() {
             data={result.team}
             teamStatus={teamStatus}
             onApproveTeam={handleApproveTeam}
+            onRemoveTeam={handleRemoveTeam}
             onRedirectTeam={handleRedirectTeam}
             prompt={prompt}
           />
