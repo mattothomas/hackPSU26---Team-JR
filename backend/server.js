@@ -420,6 +420,13 @@ app.post("/build", async (req, res) => {
 // Serve generated previews
 app.use("/preview", express.static(path.join(__dirname, "previews"), { extensions: ["html"] }));
 
+// Serve React frontend in production
+if (process.env.NODE_ENV === "production") {
+  const frontendBuild = path.join(__dirname, "..", "frontend", "build");
+  app.use(express.static(frontendBuild));
+  app.get("*", (req, res) => res.sendFile(path.join(frontendBuild, "index.html")));
+}
+
 // ── OpenClaw client ───────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -455,4 +462,5 @@ async function callAgent(agentId, prompt, retries = 3) {
   }
 }
 
-app.listen(3001, () => console.log("Backend running on http://localhost:3001"));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
