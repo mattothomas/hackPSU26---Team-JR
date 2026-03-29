@@ -223,7 +223,7 @@ function TeamPanel({ data, teamStatus, onApproveTeam, onRemoveTeam, onRedirectTe
               {member.responsibilities?.map((r, j) => <li key={j}>{boldHook(r)}</li>)}
             </ul>
             {!teamStatus[i] ? (
-              <button className="btn-approve" style={{ marginTop: "auto" }} onClick={() => onApproveTeam(i)}>
+              <button className="btn-approve" onClick={() => onApproveTeam(i)}>
                 ✓ Approve
               </button>
             ) : (

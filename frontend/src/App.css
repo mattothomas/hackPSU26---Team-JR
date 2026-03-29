@@ -538,9 +538,15 @@ strong.hook {
   flex-direction: column;
   gap: 12px;
   transition: border-color 0.2s;
-  height: auto;
-  min-height: 0;
   overflow: visible;
+}
+
+.team-card .btn-approve,
+.team-card .ready-status-row {
+  margin-top: auto;
+  flex: none;
+  height: 44px;
+  width: 100%;
 }
 
 .team-card.approved { border-color: #34d399; }
