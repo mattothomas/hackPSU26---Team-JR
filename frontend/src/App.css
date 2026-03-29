@@ -93,6 +93,26 @@ body {
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12), var(--shadow-sm);
 }
 
+.api-key-row { width: 100%; }
+.api-key-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.api-key-input::placeholder { color: var(--text-tertiary); }
+.api-key-input:focus {
+  border-color: rgba(0, 113, 227, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08);
+}
+
 .btn-launch {
   align-self: flex-start;
   display: flex;

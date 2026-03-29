@@ -228,7 +228,8 @@ app.post("/generate", async (req, res) => {
 
 // ── Execute team — runs after founder approves all roles ──────────────────────
 app.post("/execute-team", async (req, res) => {
-  const { prompt, idea, product, market, business, brand, team } = req.body;
+  const { prompt, idea, product, market, business, brand, team, geminiApiKey } = req.body;
+  const apiKey = geminiApiKey || process.env.GEMINI_API_KEY;
   if (!team?.length) return res.status(400).json({ error: "team required" });
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -343,11 +344,12 @@ app.post("/execute-team", async (req, res) => {
 
 // ── Redirect (planner or worker) ──────────────────────────────────────────────
 app.post("/redirect", async (req, res) => {
-  const { agentId, agent, originalOutput, feedback, prompt } = req.body;
+  const { agentId, agent, originalOutput, feedback, prompt, geminiApiKey } = req.body;
   if (!agent || !feedback) return res.status(400).json({ error: "agent and feedback required" });
+  const apiKey = geminiApiKey || process.env.GEMINI_API_KEY;
 
   try {
-    const result = await callAgent(agentId || "worker", `
+    const result = await callAgent(agentId || "worker", apiKey, `
       Original startup idea: "${prompt}"
       You are the ${agent} for this startup.
       Your previous output was: ${JSON.stringify(originalOutput)}
@@ -363,7 +365,8 @@ app.post("/redirect", async (req, res) => {
 
 // ── Build MVP — generates a runnable HTML app ─────────────────────────────────
 app.post("/build", async (req, res) => {
-  const { prompt, product, brand, reports } = req.body;
+  const { prompt, product, brand, reports, geminiApiKey } = req.body;
+  const apiKey = geminiApiKey || process.env.GEMINI_API_KEY;
   if (!product) return res.status(400).json({ error: "product plan required" });
 
   const startupName = typeof brand?.startup_name === "string"
@@ -438,8 +441,7 @@ if (process.env.NODE_ENV === "production") {
 // ── Gemini client (direct — no OpenClaw needed) ───────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-async function callAgent(_agentId, prompt, retries = 3) {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function callAgent(_agentId, apiKey, prompt, retries = 3) {
   if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
   for (let attempt = 1; attempt <= retries; attempt++) {

@@ -596,6 +596,7 @@ export default function App() {
     catch { return []; }
   });
   const [savedMsg, setSavedMsg]       = useState(false);
+  const [apiKey, setApiKey]           = useState(() => localStorage.getItem("gemini_api_key") || "");
 
   const saveRun = () => {
     const run = {
@@ -653,7 +654,7 @@ export default function App() {
       const res = await fetch(`${API}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, geminiApiKey: apiKey }),
       });
 
       const reader = res.body.getReader();
@@ -694,7 +695,7 @@ export default function App() {
     const res = await fetch(`${API}/redirect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId, agent: key, originalOutput, feedback, prompt }),
+      body: JSON.stringify({ agentId, agent: key, originalOutput, feedback, prompt, geminiApiKey: apiKey }),
     });
     const revised = await res.json();
     setResult(p => ({ ...p, [key]: revised }));
@@ -723,7 +724,7 @@ export default function App() {
     const res = await fetch(`${API}/redirect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId: "team-gen", agent: "team", originalOutput, feedback, prompt }),
+      body: JSON.stringify({ agentId: "team-gen", agent: "team", originalOutput, feedback, prompt, geminiApiKey: apiKey }),
     });
     const revised = await res.json();
     setResult(p => ({ ...p, team: revised }));
@@ -743,6 +744,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
+          geminiApiKey: apiKey,
           idea: result.idea,
           product: result.product,
           market: result.market,
@@ -787,6 +789,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
+          geminiApiKey: apiKey,
           product: result.product,
           brand: result.brand,
           reports,
@@ -808,7 +811,7 @@ export default function App() {
     const res = await fetch(`${API}/redirect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId: "worker", agent: originalOutput.role, originalOutput, feedback, prompt }),
+      body: JSON.stringify({ agentId: "worker", agent: originalOutput.role, originalOutput, feedback, prompt, geminiApiKey: apiKey }),
     });
     const revised = await res.json();
     setReports(prev => prev.map((r, idx) => idx === i ? { ...revised, _index: i } : r));
@@ -867,6 +870,15 @@ export default function App() {
             disabled={loading}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), generate())}
           />
+          <div className="api-key-row">
+            <input
+              className="api-key-input"
+              type="password"
+              placeholder="Gemini API key (optional — bring your own credits)"
+              value={apiKey}
+              onChange={e => { setApiKey(e.target.value); localStorage.setItem("gemini_api_key", e.target.value); }}
+            />
+          </div>
           <button className="btn-launch" onClick={generate} disabled={loading || !prompt.trim()}>
             {loading ? <><span className="spinner-sm" /> Spinning up your team...</> : "Launch →"}
           </button>
