@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KINETIC - Personalized Progress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .brand-bg { background-color: #00A8FF; }
+        .brand-text { color: #00A8FF; }
+        .brand-accent-bg { background-color: #2D3748; }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-100 font-sans">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-4xl">
+
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold tracking-tighter brand-text">KINETIC</h1>
+            <p class="text-slate-400 hidden sm:block">Personalized Progress</p>
+        </header>
+
+        <main class="space-y-12">
+            <!-- Progress Dashboard -->
+            <section id="dashboard">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold">Dashboard</h2>
+                    <button id="sync-data-btn" class="brand-bg text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        Sync Health Data
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="brand-accent-bg p-6 rounded-xl">
+                        <h3 class="text-slate-300 font-medium mb-2">Steps</h3>
+                        <p id="steps-data" class="text-4xl font-bold">--</p>
+                        <p class="text-slate-400">today</p>
+                    </div>
+                    <div class="brand-accent-bg p-6 rounded-xl">
+                        <h3 class="text-slate-300 font-medium mb-2">Heart Rate</h3>
+                        <p id="hr-data" class="text-4xl font-bold">--</p>
+                        <p class="text-slate-400">avg bpm</p>
+                    </div>
+                    <div class="brand-accent-bg p-6 rounded-xl">
+                        <h3 class="text-slate-300 font-medium mb-2">Sleep</h3>
+                        <p id="sleep-data" class="text-4xl font-bold">--</p>
+                        <p class="text-slate-400">last night</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manual Workout Logging -->
+            <section id="workout-logging">
+                <h2 class="text-2xl font-semibold mb-4">Log Workout</h2>
+                <form id="workout-form" class="brand-accent-bg p-6 rounded-xl space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="exercise-name" class="block text-sm font-medium text-slate-300 mb-1">Exercise Name</label>
+                            <input type="text" id="exercise-name" placeholder="e.g., Bench Press" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label for="sets" class="block text-sm font-medium text-slate-300 mb-1">Sets</label>
+                            <input type="number" id="sets" placeholder="3" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label for="reps" class="block text-sm font-medium text-slate-300 mb-1">Reps</label>
+                            <input type="number" id="reps" placeholder="10" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="weight" class="block text-sm font-medium text-slate-300 mb-1">Weight (kg)</label>
+                        <input type="number" id="weight" placeholder="60" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                    </div>
+                    <button type="submit" class="w-full brand-bg text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity">Log Exercise</button>
+                </form>
+            </section>
+
+            <!-- Workout History -->
+            <section id="workout-history">
+                <h2 class="text-2xl font-semibold mb-4">Workout History</h2>
+                <div id="history-container" class="space-y-4">
+                    <!-- History items will be injected here -->
+                    <p id="no-history-msg" class="text-slate-400">No workouts logged yet. Use the form above to get started!</p>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const syncBtn = document.getElementById('sync-data-btn');
+            const workoutForm = document.getElementById('workout-form');
+            const historyContainer = document.getElementById('history-container');
+            const noHistoryMsg = document.getElementById('no-history-msg');
+            
+            const stepsEl = document.getElementById('steps-data');
+            const hrEl = document.getElementById('hr-data');
+            const sleepEl = document.getElementById('sleep-data');
+
+            const APP_PREFIX = 'KINETIC_';
+            const HEALTH_DATA_KEY = `${APP_PREFIX}healthData`;
+            const WORKOUTS_KEY = `${APP_PREFIX}workouts`;
+
+            // --- DATA FUNCTIONS ---
+            const getHealthData = () => JSON.parse(localStorage.getItem(HEALTH_DATA_KEY)) || {};
+            const getWorkouts = () => JSON.parse(localStorage.getItem(WORKOUTS_KEY)) || [];
+            
+            const saveHealthData = (data) => localStorage.setItem(HEALTH_DATA_KEY, JSON.stringify(data));
+            const saveWorkouts = (workouts) => localStorage.setItem(WORKOUTS_KEY, JSON.stringify(workouts));
+
+            // --- RENDER FUNCTIONS ---
+            function renderDashboard() {
+                const data = getHealthData();
+                stepsEl.textContent = data.steps ? data.steps.toLocaleString() : '--';
+                hrEl.textContent = data.heartRate ? `${data.heartRate}` : '--';
+                sleepEl.textContent = data.sleep ? `${data.sleep}h` : '--';
+            }
+
+            function renderWorkoutHistory() {
+                const workouts = getWorkouts();
+                historyContainer.innerHTML = ''; // Clear existing
+
+                if (workouts.length === 0) {
+                    historyContainer.appendChild(noHistoryMsg);
+                } else {
+                    // Sort workouts by date, newest first
+                    workouts.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    workouts.forEach(workout => {
+                        const workoutDate = new Date(workout.date);
+                        const formattedDate = workoutDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                        const formattedTime = workoutDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                        let exercisesHTML = workout.exercises.map(ex => `
+                            <li class="flex justify-between items-center text-slate-300 py-1">
+                                <span class="font-medium">${ex.name}</span>
+                                <span class="text-slate-400">${ex.sets} sets x ${ex.reps} reps @ ${ex.weight}kg</span>
+                            </li>
+                        `).join('');
+
+                        const workoutEl = document.createElement('div');
+                        workoutEl.className = 'brand-accent-bg p-4 rounded-xl';
+                        workoutEl.innerHTML = `
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold text-lg">Workout</h3>
+                                <p class="text-sm text-slate-400">${formattedDate} - ${formattedTime}</p>
+                            </div>
+                            <ul class="divide-y divide-slate-700">
+                                ${exercisesHTML}
+                            </ul>
+                        `;
+                        historyContainer.appendChild(workoutEl);
+                    });
+                }
+            }
+
+            // --- EVENT HANDLERS ---
+            function handleSyncData() {
+                // Simulate fetching data from HealthKit/Google Fit
+                const mockData = {
+                    steps: Math.floor(Math.random() * (15000 - 3000 + 1)) + 3000,
+                    heartRate: Math.floor(Math.random() * (85 - 55 + 1)) + 55,
+                    sleep: (Math.random() * (9 - 5) + 5).toFixed(1),
+                };
+                saveHealthData(mockData);
+                renderDashboard();
+            }
+
+            function handleLogWorkout(e) {
+                e.preventDefault();
+                const exerciseName = document.getElementById('exercise-name').value;
+                const sets = document.getElementById('sets').value;
+                const reps = document.getElementById('reps').value;
+                const weight = document.getElementById('weight').value;
+
+                if (!exerciseName || !sets || !reps || !weight) {
+                    alert('Please fill out all fields.');
+                    return;
+                }
+
+                const newExercise = { name: exerciseName, sets, reps, weight };
+                const workouts = getWorkouts();
+                
+                // For simplicity, each logged exercise is its own workout session.
+                const newWorkout = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    exercises: [newExercise]
+                };
+
+                workouts.push(newWorkout);
+                saveWorkouts(workouts);
+                renderWorkoutHistory();
+                workoutForm.reset();
+            }
+            
+            // --- INITIALIZATION ---
+            syncBtn.addEventListener('click', handleSyncData);
+            workoutForm.addEventListener('submit', handleLogWorkout);
+
+            renderDashboard();
+            renderWorkoutHistory();
+        });
+    </script>
+</body>
+</html>

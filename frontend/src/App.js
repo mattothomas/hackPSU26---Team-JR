@@ -405,7 +405,7 @@ function ReportCard({ report, status, onApprove, onRedirect }) {
 }
 
 // ── Reports Panel ─────────────────────────────────────────────────────────────
-function ReportsPanel({ reports, reportStatus, onApproveReport, onRedirectReport, loading }) {
+function ReportsPanel({ reports, reportStatus, onApproveReport, onRedirectReport, onBuild, building, builtUrl, loading }) {
   if (!reports.length) {
     return (
       <div className="agent-panel">
@@ -437,6 +437,28 @@ function ReportsPanel({ reports, reportStatus, onApproveReport, onRedirectReport
           />
         ))}
       </div>
+
+      {/* Build MVP bar */}
+      <div className="execute-bar">
+        {builtUrl ? (
+          <div className="build-ready">
+            <div>
+              <div className="build-ready-label">MVP is live</div>
+              <div className="build-ready-desc">{builtUrl.description}</div>
+            </div>
+            <a href={builtUrl.url} target="_blank" rel="noreferrer" className="btn-open-mvp">
+              Open {builtUrl.app_name} →
+            </a>
+          </div>
+        ) : building ? (
+          <div className="execute-working"><span className="spinner-sm" /> Building MVP...</div>
+        ) : (
+          <>
+            <p className="execute-hint">Team work complete. Build the actual product.</p>
+            <button className="btn-execute" onClick={onBuild}>Build & Run MVP →</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -452,6 +474,8 @@ export default function App() {
   const [reports, setReports]         = useState([]);
   const [reportStatus, setReportStatus] = useState({});
   const [executing, setExecuting]     = useState(false);
+  const [building, setBuilding]       = useState(false);
+  const [builtUrl, setBuiltUrl]       = useState(null);
   const [selected, setSelected]       = useState("idea");
   const [error, setError]             = useState("");
 
@@ -465,6 +489,7 @@ export default function App() {
     setTasks([]);
     setReports([]);
     setReportStatus({});
+    setBuiltUrl(null);
     setSelected("idea");
 
     try {
@@ -599,6 +624,29 @@ export default function App() {
     setExecuting(false);
   };
 
+  const buildMvp = async () => {
+    setBuilding(true);
+    setBuiltUrl(null);
+    try {
+      const res = await fetch(`${API}/build`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          product: result.product,
+          brand: result.brand,
+          reports,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) setBuiltUrl(data);
+      else setError(data.error || "Build failed");
+    } catch (e) {
+      setError(e.message);
+    }
+    setBuilding(false);
+  };
+
   const handleApproveReport = (i) => setReportStatus(p => ({ ...p, [i]: "approved" }));
 
   const handleRedirectReport = async (i, originalOutput, feedback) => {
@@ -702,7 +750,7 @@ export default function App() {
           ))}
         </nav>
 
-        <button className="btn-new" onClick={() => { setResult(null); setPrompt(""); setTasks([]); setReports([]); setReportStatus({}); }}>
+        <button className="btn-new" onClick={() => { setResult(null); setPrompt(""); setTasks([]); setReports([]); setReportStatus({}); setBuiltUrl(null); }}>
           + New idea
         </button>
       </aside>
@@ -727,7 +775,10 @@ export default function App() {
             reportStatus={reportStatus}
             onApproveReport={handleApproveReport}
             onRedirectReport={handleRedirectReport}
-            loading={loading}
+            onBuild={buildMvp}
+            building={building}
+            builtUrl={builtUrl}
+            loading={loading || executing}
           />
         ) : (
           <AgentPanel

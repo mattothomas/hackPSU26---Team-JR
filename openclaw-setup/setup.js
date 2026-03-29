@@ -22,6 +22,7 @@ const AGENTS = [
   "team-gen",
   "task-gen",
   "worker",
+  "builder",
 ];
 
 async function getApiKey() {

@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 app.use(cors());
@@ -271,6 +273,73 @@ app.post("/redirect", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// ── Build MVP — generates a runnable HTML app ─────────────────────────────────
+app.post("/build", async (req, res) => {
+  const { prompt, product, brand, reports } = req.body;
+  if (!product) return res.status(400).json({ error: "product plan required" });
+
+  const startupName = typeof brand?.startup_name === "string"
+    ? brand.startup_name.split(" — ")[0]
+    : "Startup";
+
+  const brandColors = Array.isArray(brand?.colors) ? brand.colors.slice(0, 2).map(c => String(c).split(" — ")[0]).join(", ") : "#6366f1, #0ea5e9";
+  const tagline = brand?.tagline || "";
+
+  const workerSummary = (reports || []).map(r =>
+    `${r.role}: ${r.task_title || ""}\n${typeof r.deliverable === "string" ? r.deliverable.slice(0, 800) : JSON.stringify(r.deliverable || {}).slice(0, 400)}`
+  ).join("\n\n");
+
+  try {
+    const result = await callAgent("builder", `
+      You are building an MVP for: "${startupName}"
+      Tagline: "${tagline}"
+      Idea: "${prompt}"
+      Brand colors: ${brandColors}
+
+      Product plan:
+      Features: ${JSON.stringify(product.features || [])}
+      User flow: ${product.user_flow || ""}
+      Tech stack note: ${product.tech_stack || ""}
+      MVP scope: ${product.mvp_scope || ""}
+
+      Team deliverables:
+      ${workerSummary}
+
+      Build a complete, working web app that implements the core product.
+      A real user must open it and immediately be able to use it.
+
+      Return ONLY valid JSON — the html field must be a complete HTML document:
+      {
+        "project_slug": "kebab-case-app-name",
+        "app_name": "${startupName}",
+        "description": "one sentence of what the user can do",
+        "html": "<!DOCTYPE html>... complete HTML with Tailwind CDN, all JS inline, all features working ..."
+      }
+    `);
+
+    if (!result.html) {
+      return res.status(500).json({ error: "Builder did not return HTML" });
+    }
+
+    const slug = (result.project_slug || startupName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")).slice(0, 40);
+    const previewDir = path.join(__dirname, "previews");
+    fs.mkdirSync(previewDir, { recursive: true });
+    fs.writeFileSync(path.join(previewDir, `${slug}.html`), result.html, "utf8");
+
+    res.json({
+      url: `http://localhost:3001/preview/${slug}`,
+      slug,
+      app_name: result.app_name,
+      description: result.description,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Serve generated previews
+app.use("/preview", express.static(path.join(__dirname, "previews"), { extensions: ["html"] }));
 
 // ── OpenClaw client ───────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
