@@ -20,6 +20,8 @@ const AGENTS = [
   "brand",
   "pitch",
   "team-gen",
+  "task-gen",
+  "worker",
 ];
 
 async function getApiKey() {
