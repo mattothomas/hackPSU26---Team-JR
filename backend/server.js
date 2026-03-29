@@ -10,7 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 const OPENCLAW_URL   = process.env.OPENCLAW_URL || "http://localhost:18789";
-const OPENCLAW_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || "";
 
 app.get("/health", async (req, res) => {
   try {
@@ -427,22 +426,25 @@ if (process.env.NODE_ENV === "production") {
   app.get("/{*splat}", (req, res) => res.sendFile(path.join(frontendBuild, "index.html")));
 }
 
-// ── OpenClaw client ───────────────────────────────────────────────────────────
+// ── Gemini client (direct — no OpenClaw needed) ───────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-async function callAgent(agentId, prompt, retries = 3) {
+async function callAgent(_agentId, prompt, retries = 3) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const r = await fetch(`${OPENCLAW_URL}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENCLAW_TOKEN}`,
-      },
-      body: JSON.stringify({
-        model: `openclaw/${agentId}`,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7 },
+        }),
+      }
+    );
 
     if ((r.status === 429 || r.status === 503) && attempt < retries) {
       await sleep(4000 * attempt);
@@ -451,11 +453,11 @@ async function callAgent(agentId, prompt, retries = 3) {
 
     if (!r.ok) {
       const errText = await r.text();
-      throw new Error(`OpenClaw error ${r.status}: ${errText}`);
+      throw new Error(`Gemini error ${r.status}: ${errText}`);
     }
 
     const data = await r.json();
-    const text = data?.choices?.[0]?.message?.content ?? "";
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     try { return JSON.parse(clean); }
     catch { return { raw: text }; }
