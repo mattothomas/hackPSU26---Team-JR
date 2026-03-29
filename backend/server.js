@@ -22,8 +22,10 @@ app.get("/health", async (req, res) => {
 
 // ── Streaming generate ────────────────────────────────────────────────────────
 app.post("/generate", async (req, res) => {
-  const { prompt } = req.body;
+  const { prompt, geminiApiKey } = req.body;
   if (!prompt) return res.status(400).json({ error: "prompt required" });
+
+  const apiKey = geminiApiKey || process.env.GEMINI_API_KEY;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -31,9 +33,16 @@ app.post("/generate", async (req, res) => {
 
   const send = (key, data) => res.write(`data: ${JSON.stringify({ key, data })}\n\n`);
 
+  if (!apiKey) {
+    send("error", "💸 Plot twist: we burned through our Gemini credits demoing this at the hackathon. Classic founder move. Enter your own Gemini API key to get the agents back on the job.");
+    res.write("data: [DONE]\n\n");
+    res.end();
+    return;
+  }
+
   try {
     // ── Planning agents ────────────────────────────────────────────────────
-    const idea = await callAgent("idea-parser", `
+    const idea = await callAgent("idea-parser", apiKey, `
       You are the Idea Parser for a startup venture system.
       Startup idea: "${prompt}"
       Return ONLY valid JSON, no explanation, no markdown.
@@ -96,7 +105,7 @@ app.post("/generate", async (req, res) => {
 
     const context = `Startup idea: "${prompt}"\nParsed context: ${JSON.stringify(idea)}`;
 
-    const product = await callAgent("product", `
+    const product = await callAgent("product", apiKey, `
       You are the Product Agent for a startup venture system.
       ${context}
       Return ONLY valid JSON, no markdown.
@@ -111,7 +120,7 @@ app.post("/generate", async (req, res) => {
     `);
     send("product", product);
 
-    const market = await callAgent("market", `
+    const market = await callAgent("market", apiKey, `
       You are the Market Agent for a startup venture system.
       ${context}
       Return ONLY valid JSON, no markdown.
@@ -131,7 +140,7 @@ app.post("/generate", async (req, res) => {
     `);
     send("market", market);
 
-    const business = await callAgent("business", `
+    const business = await callAgent("business", apiKey, `
       You are the Business Agent for a startup venture system.
       ${context}
       Return ONLY valid JSON, no markdown.
@@ -150,7 +159,7 @@ app.post("/generate", async (req, res) => {
     `);
     send("business", business);
 
-    const brand = await callAgent("brand", `
+    const brand = await callAgent("brand", apiKey, `
       You are the Brand Agent for a startup venture system.
       ${context}
       Return ONLY valid JSON, no markdown.
@@ -165,7 +174,7 @@ app.post("/generate", async (req, res) => {
     `);
     send("brand", brand);
 
-    const pitch = await callAgent("pitch", `
+    const pitch = await callAgent("pitch", apiKey, `
       You are the Pitch Agent for a startup venture system.
       ${context}
       Return ONLY valid JSON, no markdown.
@@ -188,7 +197,7 @@ app.post("/generate", async (req, res) => {
     `);
     send("pitch", pitch);
 
-    const team = await callAgent("team-gen", `
+    const team = await callAgent("team-gen", apiKey, `
       You are the Team Generator for a startup venture system.
       ${context}
       Product plan: ${JSON.stringify(product)}
@@ -234,7 +243,7 @@ app.post("/execute-team", async (req, res) => {
 
   try {
     // 1. Assign tasks
-    const taskData = await callAgent("task-gen", `
+    const taskData = await callAgent("task-gen", apiKey, `
       You are the Task Generator for FounderOS.
       Startup: "${startupName}" — ${prompt}
       Founding team: ${JSON.stringify(team)}
@@ -282,7 +291,7 @@ app.post("/execute-team", async (req, res) => {
       const taskTitle = String(task.title).split(" — ")[0];
       const roleSkills = (member.skills || []).map(s => String(s).split(" — ")[0]).join(", ");
 
-      const report = await callAgent("worker", `
+      const report = await callAgent("worker", apiKey, `
         You are the ${member.role} at ${startupName}.
         Skills: ${roleSkills}
 
@@ -369,7 +378,7 @@ app.post("/build", async (req, res) => {
   ).join("\n\n");
 
   try {
-    const result = await callAgent("builder", `
+    const result = await callAgent("builder", apiKey, `
       You are building an MVP for: "${startupName}"
       Tagline: "${tagline}"
       Idea: "${prompt}"
